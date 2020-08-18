@@ -23,28 +23,43 @@ class CPU:
         """Load a program into memory."""
 
         address = 0
+        program = []
+
+        with open(sys.argv[1], 'r') as f:
+            # print(f.read())
+            for l in f.readlines():
+                if l:
+                    line_list = [s.strip() for s in l.split('#')]
+                    nums = '01'
+                    for s in line_list:
+                        if (s) and (s[0] in nums) and (s[-1] in nums):
+                            program.append(bin(int(s, 2)))
+            # print(program)
 
         # For now, we've just hardcoded a program:
 
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
+        # program = [
+        #     # From print8.ls8
+        #     0b10000010, # LDI R0,8
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111, # PRN R0
+        #     0b00000000,
+        #     0b00000001, # HLT
+        # ]
 
         for instruction in program:
-            self.ram[address] = instruction
+            self.ram[address] = int(instruction, 2)
             address += 1
+        # print(self.ram)
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
 
-        if op == "ADD":
+        if op == 'ADD':
             self.reg[reg_a] += self.reg[reg_b]
+        elif op == 'MUL':
+            self.reg[reg_a] *= self.reg[reg_b]
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
@@ -83,6 +98,12 @@ class CPU:
                 reg_slot = self.ram_read(self.pc + 1)
                 self.reg[reg_slot] = self.ram_read(self.pc + 2)
                 self.pc += 3
-            elif hex(ir) == '0x47': #PRN - print value stored in given register
+            elif hex(ir) == '0x47': # PRN - print value stored in given register
                 print(self.reg[self.ram_read(self.pc + 1)])
                 self.pc += 2
+            elif hex(ir) == '0xa2': # MUL - multiply values in two registers together and store the result in registerA
+                self.alu('MUL', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+                self.pc += 3
+
+# x = CPU()
+# x.load() # examples/print8.ls8
