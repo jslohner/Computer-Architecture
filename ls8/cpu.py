@@ -2,7 +2,17 @@
 
 import sys
 
-# 1) call
+# '0x1': # HLT
+# '0x82': # LDI
+# '0x47': # PRN
+# '0xa2': # MUL
+
+instruction_codes = {
+    'hlt': '0x1',
+    'ldi': '0x82',
+    'prn': '0x47',
+    'mul': '0xa2'
+}
 
 class CPU:
     """Main CPU class."""
@@ -12,6 +22,13 @@ class CPU:
         self.pc = 0
         self.reg = [0] * 8
         self.ram = [0] * 256
+        self.running = True
+        self.branchtable = {}
+        self.branchtable[instruction_codes['hlt']] = self.handle_hlt
+        self.branchtable[instruction_codes['ldi']] = self.handle_ldi
+        self.branchtable[instruction_codes['prn']] = self.handle_prn
+        self.branchtable[instruction_codes['mul']] = self.handle_mul
+
 
     def ram_read(self, mar): # mar - [_Memory Address Register_]
         return self.ram[mar]
@@ -26,7 +43,6 @@ class CPU:
         program = []
 
         with open(sys.argv[1], 'r') as f:
-            # print(f.read())
             for l in f.readlines():
                 if l:
                     line_list = [s.strip() for s in l.split('#')]
@@ -84,26 +100,47 @@ class CPU:
 
         print()
 
+    def handle_hlt(self): # HLT - stop running the program
+        self.pc += 1
+        self.running = False
+
+    def handle_ldi(self): # LDI - set the value of a register to an integer
+        # reg_slot = self.ram_read(self.pc + 1)
+        self.reg[self.ram_read(self.pc + 1)] = self.ram_read(self.pc + 2)
+        self.pc += 3
+
+    def handle_prn(self): # PRN - print value stored in given register
+        print(self.reg[self.ram_read(self.pc + 1)])
+        self.pc += 2
+
+    def handle_mul(self): # MUL - multiply values in two registers together and store the result in registerA
+        self.alu('MUL', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        self.pc += 3
+
     def run(self):
         """Run the CPU."""
-        running = True
-        while running:
-            ir = self.ram[self.pc] # ir - [_Instruction Register_]
-            # operand_a = self.ram_read(self.pc + 1)
-            # operand_b = self.ram_read(self.pc + 2)
-            if hex(ir) == '0x1': # HLT - stop running the program
-                running = False
-                self.pc += 1
-            elif hex(ir) == '0x82': # LDI - set the value of a register to an integer
-                reg_slot = self.ram_read(self.pc + 1)
-                self.reg[reg_slot] = self.ram_read(self.pc + 2)
-                self.pc += 3
-            elif hex(ir) == '0x47': # PRN - print value stored in given register
-                print(self.reg[self.ram_read(self.pc + 1)])
-                self.pc += 2
-            elif hex(ir) == '0xa2': # MUL - multiply values in two registers together and store the result in registerA
-                self.alu('MUL', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
-                self.pc += 3
+        while self.running:
+            ir = hex(self.ram[self.pc]) # ir - [_Instruction Register_]
+            self.branchtable[ir]()
+
+        # running = True
+        # while running:
+        #     ir = self.ram[self.pc] # ir - [_Instruction Register_]
+        #     # operand_a = self.ram_read(self.pc + 1)
+        #     # operand_b = self.ram_read(self.pc + 2)
+        #     if hex(ir) == '0x1': # HLT - stop running the program
+        #         running = False
+        #         self.pc += 1
+        #     elif hex(ir) == '0x82': # LDI - set the value of a register to an integer
+        #         reg_slot = self.ram_read(self.pc + 1)
+        #         self.reg[reg_slot] = self.ram_read(self.pc + 2)
+        #         self.pc += 3
+        #     elif hex(ir) == '0x47': # PRN - print value stored in given register
+        #         print(self.reg[self.ram_read(self.pc + 1)])
+        #         self.pc += 2
+        #     elif hex(ir) == '0xa2': # MUL - multiply values in two registers together and store the result in registerA
+        #         self.alu('MUL', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        #         self.pc += 3
 
 # x = CPU()
 # x.load() # examples/print8.ls8
