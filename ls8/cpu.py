@@ -2,12 +2,22 @@
 
 import sys
 
+# 1) call
+
 class CPU:
     """Main CPU class."""
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        self.pc = 0
+        self.reg = [0] * 8
+        self.ram = [0] * 256
+
+    def ram_read(self, mar): # mar - [_Memory Address Register_]
+        return self.ram[mar]
+
+    def ram_write(self, mar, mdr): # mar - [_Memory Address Register_] | mdr - [_Memory Data Register_]
+        self.ram[mar] = mdr
 
     def load(self):
         """Load a program into memory."""
@@ -29,7 +39,6 @@ class CPU:
         for instruction in program:
             self.ram[address] = instruction
             address += 1
-
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -62,4 +71,18 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        running = True
+        while running:
+            ir = self.ram[self.pc] # ir - [_Instruction Register_]
+            # operand_a = self.ram_read(self.pc + 1)
+            # operand_b = self.ram_read(self.pc + 2)
+            if hex(ir) == '0x1': # HLT - stop running the program
+                running = False
+                self.pc += 1
+            elif hex(ir) == '0x82': # LDI - set the value of a register to an integer
+                reg_slot = self.ram_read(self.pc + 1)
+                self.reg[reg_slot] = self.ram_read(self.pc + 2)
+                self.pc += 3
+            elif hex(ir) == '0x47': #PRN - print value stored in given register
+                print(self.reg[self.ram_read(self.pc + 1)])
+                self.pc += 2
