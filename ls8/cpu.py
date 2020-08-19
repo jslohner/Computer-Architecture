@@ -20,7 +20,6 @@ class CPU:
         self.reg = [0] * 8
         self.ram = [0] * 256
         self.running = True
-        self.reg[7] = len(self.ram)
         self.branchtable = {}
         self.branchtable[instruction_codes['hlt']] = self.handle_hlt
         self.branchtable[instruction_codes['ldi']] = self.handle_ldi
