@@ -11,7 +11,8 @@ instruction_codes = {
     'push': '0x45',
     'pop': '0x46',
     'call': '0x50',
-    'ret': '0x11'
+    'ret': '0x11',
+    'st': '0x84'
 }
 
 class CPU:
@@ -33,6 +34,7 @@ class CPU:
         self.branchtable[instruction_codes['pop']] = self.handle_pop
         self.branchtable[instruction_codes['call']] = self.handle_call
         self.branchtable[instruction_codes['ret']] = self.handle_ret
+        self.branchtable[instruction_codes['st']] = self.handle_st
 
 
     def ram_read(self, mar): # mar - [_Memory Address Register_]
@@ -145,15 +147,19 @@ class CPU:
         self.stack_pop()
         self.pc += 2
 
-    def handle_call(self):
+    def handle_call(self): # CALL - calls a subroutine (function) at the address stored in the register
         # self.reg[7] -= 1
         # self.ram[self.reg[7]] = (self.pc + 2)
         self.stack_push(self.pc + 2)
         self.pc = self.reg[self.ram_read(self.pc + 1)]
 
-    def handle_ret(self):
+    def handle_ret(self): # RET - return from subroutine
         self.pc = self.ram[self.reg[7]]
         self.reg[7] += 1
+
+    def handle_st(self): # ST - store value in registerB in the address stored in registerA
+        self.ram[self.reg[self.ram_read(self.pc + 1)]] = self.reg[self.ram_read(self.pc + 2)]
+        self.pc += 3
 
     def run(self):
         """Run the CPU."""
