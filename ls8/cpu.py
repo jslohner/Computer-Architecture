@@ -110,7 +110,6 @@ class CPU:
         self.running = False
 
     def handle_ldi(self): # LDI - set the value of a register to an integer
-        # reg_slot = self.ram_read(self.pc + 1)
         self.reg[self.ram_read(self.pc + 1)] = self.ram_read(self.pc + 2)
         self.pc += 3
 
@@ -147,9 +146,7 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        # print(f'{self.reg[7]} at pc {self.pc}')
         while self.running:
-            print(f'{self.reg[7]} at pc {self.pc}')
             ir = hex(self.ram[self.pc]) # ir - [_Instruction Register_]
             self.branchtable[ir]()
 
