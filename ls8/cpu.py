@@ -41,6 +41,14 @@ class CPU:
     def ram_write(self, mar, mdr): # mar - [_Memory Address Register_] | mdr - [_Memory Data Register_]
         self.ram[mar] = mdr
 
+    def stack_push(self, val):
+        self.reg[7] -= 1
+        self.ram[self.reg[7]] = val
+
+    def stack_pop(self):
+        self.reg[self.ram_read(self.pc + 1)] = self.ram[self.reg[7]]
+        self.reg[7] += 1
+
     def load(self):
         """Load a program into memory."""
 
@@ -126,18 +134,21 @@ class CPU:
         self.pc += 3
 
     def handle_push(self): # PUSH - push the value in the given register on the stack
-        self.reg[7] -= 1
-        self.ram[self.reg[7]] = self.reg[self.ram_read(self.pc + 1)]
+        # self.reg[7] -= 1
+        # self.ram[self.reg[7]] = self.reg[self.ram_read(self.pc + 1)]
+        self.stack_push(self.reg[self.ram_read(self.pc + 1)])
         self.pc += 2
 
     def handle_pop(self): # POP - pop the value at the top of the stack into the given register
-        self.reg[self.ram_read(self.pc + 1)] = self.ram[self.reg[7]]
-        self.reg[7] += 1
+        # self.reg[self.ram_read(self.pc + 1)] = self.ram[self.reg[7]]
+        # self.reg[7] += 1
+        self.stack_pop()
         self.pc += 2
 
     def handle_call(self):
-        self.reg[7] -= 1
-        self.ram[self.reg[7]] = (self.pc + 2)
+        # self.reg[7] -= 1
+        # self.ram[self.reg[7]] = (self.pc + 2)
+        self.stack_push(self.pc + 2)
         self.pc = self.reg[self.ram_read(self.pc + 1)]
 
     def handle_ret(self):
