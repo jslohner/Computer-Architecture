@@ -20,7 +20,7 @@ class CPU:
     def __init__(self):
         """Construct a new CPU."""
         self.pc = 0
-        self.reg = [0] * 8
+        self.reg = [0xf4 if (i == 7) else 0 for i in range(0, 8)]
         self.ram = [0] * 256
         self.running = True
         self.branchtable = {}
@@ -147,7 +147,9 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
+        # print(f'{self.reg[7]} at pc {self.pc}')
         while self.running:
+            print(f'{self.reg[7]} at pc {self.pc}')
             ir = hex(self.ram[self.pc]) # ir - [_Instruction Register_]
             self.branchtable[ir]()
 
