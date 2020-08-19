@@ -2,16 +2,13 @@
 
 import sys
 
-# '0x1': # HLT
-# '0x82': # LDI
-# '0x47': # PRN
-# '0xa2': # MUL
-
 instruction_codes = {
     'hlt': '0x1',
     'ldi': '0x82',
     'prn': '0x47',
-    'mul': '0xa2'
+    'mul': '0xa2',
+    'push': '0x45',
+    'pop': '0x46'
 }
 
 class CPU:
@@ -23,11 +20,14 @@ class CPU:
         self.reg = [0] * 8
         self.ram = [0] * 256
         self.running = True
+        self.reg[7] = len(self.ram)
         self.branchtable = {}
         self.branchtable[instruction_codes['hlt']] = self.handle_hlt
         self.branchtable[instruction_codes['ldi']] = self.handle_ldi
         self.branchtable[instruction_codes['prn']] = self.handle_prn
         self.branchtable[instruction_codes['mul']] = self.handle_mul
+        self.branchtable[instruction_codes['push']] = self.handle_push
+        self.branchtable[instruction_codes['pop']] = self.handle_pop
 
 
     def ram_read(self, mar): # mar - [_Memory Address Register_]
@@ -116,6 +116,18 @@ class CPU:
     def handle_mul(self): # MUL - multiply values in two registers together and store the result in registerA
         self.alu('MUL', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
         self.pc += 3
+
+    def handle_push(self): # PUSH - push the value in the given register on the stack
+        self.reg[7] -= 1
+        sp = self.reg[7]
+        self.ram[sp] = self.reg[self.ram_read(self.pc + 1)]
+        self.pc += 2
+
+    def handle_pop(self): # POP - pop the value at the top of the stack into the given register
+        sp = self.reg[7]
+        self.reg[self.ram_read(self.pc + 1)] = self.ram[sp]
+        self.reg[7] += 1
+        self.pc += 2
 
     def run(self):
         """Run the CPU."""
