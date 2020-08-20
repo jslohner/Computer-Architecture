@@ -44,6 +44,14 @@ class CPU:
     def ram_write(self, mar, mdr): # mar - [_Memory Address Register_] | mdr - [_Memory Data Register_]
         self.ram[mar] = mdr
 
+    def set_pc(self, pc_value=None):
+        ir = self.ram[self.pc]
+        if (ir >> 4) & (1):
+            self.pc = pc_value
+            # self.pc = self.reg[self.ram_read(self.pc + 1)]
+        else:
+            self.pc += ((ir >> 6) + 1)
+
     def stack_push(self, val):
         self.reg[self.sp] -= 1
         self.ram[self.reg[self.sp]] = val
@@ -67,18 +75,6 @@ class CPU:
                         if (s) and (s[0] in nums) and (s[-1] in nums):
                             program.append(bin(int(s, 2)))
             # print(program)
-
-        # For now, we've just hardcoded a program:
-
-        # program = [
-        #     # From print8.ls8
-        #     0b10000010, # LDI R0,8
-        #     0b00000000,
-        #     0b00001000,
-        #     0b01000111, # PRN R0
-        #     0b00000000,
-        #     0b00000001, # HLT
-        # ]
 
         for instruction in program:
             self.ram[address] = int(instruction, 2)
@@ -121,70 +117,62 @@ class CPU:
 
     def handle_ldi(self): # LDI - set the value of a register to an integer
         self.reg[self.ram_read(self.pc + 1)] = self.ram_read(self.pc + 2)
-        self.pc += 3
+        # self.pc += 3
+        self.set_pc()
 
     def handle_prn(self): # PRN - print value stored in given register
         print(self.reg[self.ram_read(self.pc + 1)])
-        self.pc += 2
+        self.set_pc()
+        # self.pc += 2
 
     def handle_add(self):
         self.alu('ADD', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
-        self.pc += 3
+        # self.pc += 3
+        self.set_pc()
 
     def handle_mul(self): # MUL - multiply values in two registers together and store the result in registerA
         self.alu('MUL', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
-        self.pc += 3
+        # self.pc += 3
+        self.set_pc()
 
     def handle_push(self): # PUSH - push the value in the given register on the stack
         # self.reg[7] -= 1
         # self.ram[self.reg[7]] = self.reg[self.ram_read(self.pc + 1)]
         self.stack_push(self.reg[self.ram_read(self.pc + 1)])
-        self.pc += 2
+        # self.pc += 2
+        self.set_pc()
 
     def handle_pop(self): # POP - pop the value at the top of the stack into the given register
         # self.reg[self.ram_read(self.pc + 1)] = self.ram[self.reg[7]]
         # self.reg[7] += 1
         self.stack_pop()
-        self.pc += 2
+        # self.pc += 2
+        self.set_pc()
 
     def handle_call(self): # CALL - calls a subroutine (function) at the address stored in the register
         # self.reg[7] -= 1
         # self.ram[self.reg[7]] = (self.pc + 2)
         self.stack_push(self.pc + 2)
-        self.pc = self.reg[self.ram_read(self.pc + 1)]
+        # self.pc = self.reg[self.ram_read(self.pc + 1)]
+        self.set_pc(self.reg[self.ram_read(self.pc + 1)])
 
     def handle_ret(self): # RET - return from subroutine
-        self.pc = self.ram[self.reg[self.sp]]
+        # self.pc = self.ram[self.reg[self.sp]]
+        self.set_pc(self.ram[self.reg[self.sp]])
         self.reg[self.sp] += 1
 
     def handle_st(self): # ST - store value in registerB in the address stored in registerA
         self.ram[self.reg[self.ram_read(self.pc + 1)]] = self.reg[self.ram_read(self.pc + 2)]
-        self.pc += 3
+        # self.pc += 3
+        self.set_pc()
 
     def run(self):
         """Run the CPU."""
         while self.running:
+            # print(bin(self.ram[self.pc]))
+            # print(self.pc)
             ir = hex(self.ram[self.pc]) # ir - [_Instruction Register_]
             self.branchtable[ir]()
-
-        # running = True
-        # while running:
-        #     ir = self.ram[self.pc] # ir - [_Instruction Register_]
-        #     # operand_a = self.ram_read(self.pc + 1)
-        #     # operand_b = self.ram_read(self.pc + 2)
-        #     if hex(ir) == '0x1': # HLT - stop running the program
-        #         running = False
-        #         self.pc += 1
-        #     elif hex(ir) == '0x82': # LDI - set the value of a register to an integer
-        #         reg_slot = self.ram_read(self.pc + 1)
-        #         self.reg[reg_slot] = self.ram_read(self.pc + 2)
-        #         self.pc += 3
-        #     elif hex(ir) == '0x47': # PRN - print value stored in given register
-        #         print(self.reg[self.ram_read(self.pc + 1)])
-        #         self.pc += 2
-        #     elif hex(ir) == '0xa2': # MUL - multiply values in two registers together and store the result in registerA
-        #         self.alu('MUL', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
-        #         self.pc += 3
 
 # x = CPU()
 # x.load() # examples/print8.ls8
