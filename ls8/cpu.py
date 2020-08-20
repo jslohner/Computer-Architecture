@@ -21,7 +21,8 @@ class CPU:
     def __init__(self):
         """Construct a new CPU."""
         self.pc = 0
-        self.reg = [0xf4 if (i == 7) else 0 for i in range(0, 8)]
+        self.sp = 7
+        self.reg = [0xf4 if (i == self.sp) else 0 for i in range(0, 8)]
         self.ram = [0] * 256
         self.running = True
         self.branchtable = {}
@@ -44,12 +45,12 @@ class CPU:
         self.ram[mar] = mdr
 
     def stack_push(self, val):
-        self.reg[7] -= 1
-        self.ram[self.reg[7]] = val
+        self.reg[self.sp] -= 1
+        self.ram[self.reg[self.sp]] = val
 
     def stack_pop(self):
-        self.reg[self.ram_read(self.pc + 1)] = self.ram[self.reg[7]]
-        self.reg[7] += 1
+        self.reg[self.ram_read(self.pc + 1)] = self.ram[self.reg[self.sp]]
+        self.reg[self.sp] += 1
 
     def load(self):
         """Load a program into memory."""
@@ -82,7 +83,6 @@ class CPU:
         for instruction in program:
             self.ram[address] = int(instruction, 2)
             address += 1
-        # print(self.ram)
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
@@ -154,8 +154,8 @@ class CPU:
         self.pc = self.reg[self.ram_read(self.pc + 1)]
 
     def handle_ret(self): # RET - return from subroutine
-        self.pc = self.ram[self.reg[7]]
-        self.reg[7] += 1
+        self.pc = self.ram[self.reg[self.sp]]
+        self.reg[self.sp] += 1
 
     def handle_st(self): # ST - store value in registerB in the address stored in registerA
         self.ram[self.reg[self.ram_read(self.pc + 1)]] = self.reg[self.ram_read(self.pc + 2)]
