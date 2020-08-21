@@ -12,7 +12,8 @@ instruction_codes = {
     'pop': '0x46',
     'call': '0x50',
     'ret': '0x11',
-    'st': '0x84'
+    'st': '0x84',
+    'and': '0xa8'
 }
 
 class CPU:
@@ -29,14 +30,15 @@ class CPU:
         self.branchtable[instruction_codes['hlt']] = self.handle_hlt
         self.branchtable[instruction_codes['ldi']] = self.handle_ldi
         self.branchtable[instruction_codes['prn']] = self.handle_prn
-        self.branchtable[instruction_codes['add']] = self.handle_add
-        self.branchtable[instruction_codes['mul']] = self.handle_mul
         self.branchtable[instruction_codes['push']] = self.handle_push
         self.branchtable[instruction_codes['pop']] = self.handle_pop
         self.branchtable[instruction_codes['call']] = self.handle_call
         self.branchtable[instruction_codes['ret']] = self.handle_ret
         self.branchtable[instruction_codes['st']] = self.handle_st
-
+        # --- alu
+        self.branchtable[instruction_codes['add']] = self.handle_add
+        self.branchtable[instruction_codes['mul']] = self.handle_mul
+        self.branchtable[instruction_codes['and']] = self.handle_and
 
     def ram_read(self, mar): # mar - [_Memory Address Register_]
         return self.ram[mar]
@@ -87,6 +89,8 @@ class CPU:
             self.reg[reg_a] += self.reg[reg_b]
         elif op == 'MUL':
             self.reg[reg_a] *= self.reg[reg_b]
+        elif op == 'AND':
+            self.reg[reg_a] &= self.reg[reg_b]
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
@@ -125,16 +129,6 @@ class CPU:
         self.set_pc()
         # self.pc += 2
 
-    def handle_add(self):
-        self.alu('ADD', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
-        # self.pc += 3
-        self.set_pc()
-
-    def handle_mul(self): # MUL - multiply values in two registers together and store the result in registerA
-        self.alu('MUL', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
-        # self.pc += 3
-        self.set_pc()
-
     def handle_push(self): # PUSH - push the value in the given register on the stack
         # self.reg[7] -= 1
         # self.ram[self.reg[7]] = self.reg[self.ram_read(self.pc + 1)]
@@ -164,6 +158,23 @@ class CPU:
     def handle_st(self): # ST - store value in registerB in the address stored in registerA
         self.ram[self.reg[self.ram_read(self.pc + 1)]] = self.reg[self.ram_read(self.pc + 2)]
         # self.pc += 3
+        self.set_pc()
+
+    # --- alu
+    def handle_add(self):
+        self.alu('ADD', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        # self.pc += 3
+        self.set_pc()
+
+    def handle_mul(self): # MUL - multiply values in two registers together and store the result in registerA
+        self.alu('MUL', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        # self.pc += 3
+        self.set_pc()
+
+    def handle_and(self):
+        # print(bin(self.ram_read(self.pc + 1)))
+        # print(bin(self.ram_read(self.pc + 2)))
+        self.alu('AND', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
         self.set_pc()
 
     def run(self):
