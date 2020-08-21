@@ -18,6 +18,12 @@ instruction_codes = {
     'add': '0xa0',
     'mul': '0xa2',
     'and': '0xa8',
+    'or': '0xaa',
+    'xor': '0xab',
+    'not': '0x69',
+    'shl': '0xac',
+    'shr': '0xad',
+    'mod': '0xa4',
     'cmp': '0xa7'
 }
 
@@ -48,6 +54,12 @@ class CPU:
         self.branchtable[instruction_codes['add']] = self.handle_add
         self.branchtable[instruction_codes['mul']] = self.handle_mul
         self.branchtable[instruction_codes['and']] = self.handle_and
+        self.branchtable[instruction_codes['or']] = self.handle_or
+        self.branchtable[instruction_codes['xor']] = self.handle_xor
+        self.branchtable[instruction_codes['not']] = self.handle_not
+        self.branchtable[instruction_codes['shl']] = self.handle_shl
+        self.branchtable[instruction_codes['shr']] = self.handle_shr
+        self.branchtable[instruction_codes['mod']] = self.handle_mod
         self.branchtable[instruction_codes['cmp']] = self.handle_cmp
 
     def ram_read(self, mar): # mar - [_Memory Address Register_]
@@ -97,6 +109,22 @@ class CPU:
             self.reg[reg_a] *= self.reg[reg_b]
         elif op == 'AND':
             self.reg[reg_a] &= self.reg[reg_b]
+        elif op == 'OR':
+            self.reg[reg_a] |= self.reg[reg_b]
+        elif op == 'XOR':
+            self.reg[reg_a] ^= self.reg[reg_b]
+        elif op == 'NOT':
+            self.reg[reg_a] = ~self.reg[reg_b]
+        elif op == 'SHL':
+            self.reg[reg_a] <<= self.reg[reg_b]
+        elif op == 'SHR':
+            self.reg[reg_a] >>= self.reg[reg_b]
+        elif op == 'MOD':
+            if self.reg[reg_b] == 0:
+                print('error - could not mod with 0')
+                self.running = False
+            else:
+                self.reg[reg_a] %= self.reg[reg_b]
         elif op == 'CMP': #00000LGE
             if self.reg[reg_a] == self.reg[reg_b]:
                 self.fl = 0b00000001
@@ -201,6 +229,30 @@ class CPU:
 
     def handle_and(self): # AND - bitwise-AND the values in registerA and registerB, then store the result in registerA
         self.alu('AND', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        self.set_pc()
+
+    def handle_or(self): # OR - perform a bitwise-OR between the values in registerA and registerB, storing the result in registerA
+        self.alu('OR', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        self.set_pc()
+
+    def handle_xor(self): # XOR - perform a bitwise-XOR between the values in registerA and registerB, storing the result in registerA
+        self.alu('XOR', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        self.set_pc()
+
+    def handle_not(self): # NOT perform a bitwise-NOT on the value in a register, storing the result in the register
+        self.alu('NOT', self.ram_read(self.pc + 1), self.ram_read(self.pc + 1))
+        self.set_pc()
+
+    def handle_shl(self): # SHL - shift the value in registerA left by the number of bits specified in registerB, filling the low bits with 0
+        self.alu('SHL', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        self.set_pc()
+
+    def handle_shr(self): # SHR - shift the value in registerA right by the number of bits specified in registerB, filling the high bits with 0
+        self.alu('SHR', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        self.set_pc()
+
+    def handle_mod(self): # MOD ivide the value in the first register by the value in the second, storing the _remainder_ of the result in registerA
+        self.alu('MOD', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
         self.set_pc()
 
     def handle_cmp(self): # CMP - compare the values in two registers
