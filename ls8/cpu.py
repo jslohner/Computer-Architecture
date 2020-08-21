@@ -60,7 +60,6 @@ class CPU:
         ir = self.ram[self.pc]
         if (ir >> 4) & (1):
             self.pc = pc_value
-            # self.pc = self.reg[self.ram_read(self.pc + 1)]
         else:
             self.pc += ((ir >> 6) + 1)
 
@@ -79,14 +78,11 @@ class CPU:
         program = []
 
         with open(sys.argv[1], 'r') as f:
+            nums = '01'
             for l in f.readlines():
-                if l:
-                    line_list = [s.strip() for s in l.split('#')]
-                    nums = '01'
-                    for s in line_list:
-                        if (s) and (s[0] in nums) and (s[-1] in nums):
-                            program.append(bin(int(s, 2)))
-            # print(program)
+                if (l) and (l[0] != '#') and (l[0] in nums):
+                    line_elements = l.split('#')
+                    program.append(bin(int(line_elements[0], 2)))
 
         for instruction in program:
             self.ram[address] = int(instruction, 2)
@@ -182,17 +178,16 @@ class CPU:
         if self.fl & 1:
             self.set_pc(self.reg[self.ram_read(self.pc + 1)])
         else:
-            self.set_pc()
-#00000LGE
+            self.set_pc(self.pc + 2)
 
     def handle_jne(self): # JNE - if `E` flag is clear (false, 0), jump to the address stored in the given register
         if not (self.fl & 1):
             self.set_pc(self.reg[self.ram_read(self.pc + 1)])
         else:
-            self.set_pc()
+            self.set_pc(self.pc + 2)
 
     def handle_jmp(self): # JMP - jump to the address stored in the given register
-        pass
+        self.set_pc(self.reg[self.ram_read(self.pc + 1)])
 
     # --- alu
     def handle_add(self): # ADD - add the value in two registers and store the result in registerA
@@ -206,8 +201,6 @@ class CPU:
         self.set_pc()
 
     def handle_and(self): # AND - bitwise-AND the values in registerA and registerB, then store the result in registerA
-        # print(bin(self.ram_read(self.pc + 1)))
-        # print(bin(self.ram_read(self.pc + 2)))
         self.alu('AND', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
         self.set_pc()
 
@@ -218,11 +211,8 @@ class CPU:
     def run(self):
         """Run the CPU."""
         while self.running:
-            # print(bin(self.ram[self.pc]))
-            # print(self.pc)
             ir = hex(self.ram[self.pc]) # ir - [_Instruction Register_]
             self.branchtable[ir]()
-        # print(self.fl)
 
 # x = CPU()
 # x.load() # examples/print8.ls8
