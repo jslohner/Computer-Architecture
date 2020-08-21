@@ -104,7 +104,6 @@ class CPU:
                 self.fl = 0b00000010
             elif self.reg[reg_a] < self.reg[reg_b]:
                 self.fl = 0b00000100
-
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
@@ -213,10 +212,3 @@ class CPU:
         while self.running:
             ir = hex(self.ram[self.pc]) # ir - [_Instruction Register_]
             self.branchtable[ir]()
-
-# x = CPU()
-# x.load() # examples/print8.ls8
-
-# JEQ
-# JNE
-# JMP
