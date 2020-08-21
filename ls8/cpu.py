@@ -2,40 +2,136 @@
 
 import sys
 
+instruction_codes = {
+    'hlt': '0x1',
+    'ldi': '0x82',
+    'prn': '0x47',
+    'push': '0x45',
+    'pop': '0x46',
+    'call': '0x50',
+    'ret': '0x11',
+    'st': '0x84',
+    'jeq': '0x55',
+    'jne': '0x56',
+    'jmp': '0x54',
+    # --- alu
+    'add': '0xa0',
+    'mul': '0xa2',
+    'and': '0xa8',
+    'or': '0xaa',
+    'xor': '0xab',
+    'not': '0x69',
+    'shl': '0xac',
+    'shr': '0xad',
+    'mod': '0xa4',
+    'cmp': '0xa7'
+}
+
 class CPU:
     """Main CPU class."""
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        self.pc = 0
+        self.fl = 0
+        self.sp = 7
+        self.reg = [0xf4 if (i == self.sp) else 0 for i in range(0, 8)]
+        self.ram = [0] * 256
+        self.running = True
+        self.branchtable = {}
+        self.branchtable[instruction_codes['hlt']] = self.handle_hlt
+        self.branchtable[instruction_codes['ldi']] = self.handle_ldi
+        self.branchtable[instruction_codes['prn']] = self.handle_prn
+        self.branchtable[instruction_codes['push']] = self.handle_push
+        self.branchtable[instruction_codes['pop']] = self.handle_pop
+        self.branchtable[instruction_codes['call']] = self.handle_call
+        self.branchtable[instruction_codes['ret']] = self.handle_ret
+        self.branchtable[instruction_codes['st']] = self.handle_st
+        self.branchtable[instruction_codes['jeq']] = self.handle_jeq
+        self.branchtable[instruction_codes['jne']] = self.handle_jne
+        self.branchtable[instruction_codes['jmp']] = self.handle_jmp
+        # --- alu
+        self.branchtable[instruction_codes['add']] = self.handle_add
+        self.branchtable[instruction_codes['mul']] = self.handle_mul
+        self.branchtable[instruction_codes['and']] = self.handle_and
+        self.branchtable[instruction_codes['or']] = self.handle_or
+        self.branchtable[instruction_codes['xor']] = self.handle_xor
+        self.branchtable[instruction_codes['not']] = self.handle_not
+        self.branchtable[instruction_codes['shl']] = self.handle_shl
+        self.branchtable[instruction_codes['shr']] = self.handle_shr
+        self.branchtable[instruction_codes['mod']] = self.handle_mod
+        self.branchtable[instruction_codes['cmp']] = self.handle_cmp
+
+    def ram_read(self, mar): # mar - [_Memory Address Register_]
+        return self.ram[mar]
+
+    def ram_write(self, mar, mdr): # mar - [_Memory Address Register_] | mdr - [_Memory Data Register_]
+        self.ram[mar] = mdr
+
+    def set_pc(self, pc_value=None):
+        ir = self.ram[self.pc]
+        if (ir >> 4) & (1):
+            self.pc = pc_value
+        else:
+            self.pc += ((ir >> 6) + 1)
+
+    def stack_push(self, val):
+        self.reg[self.sp] -= 1
+        self.ram[self.reg[self.sp]] = val
+
+    def stack_pop(self):
+        self.reg[self.ram_read(self.pc + 1)] = self.ram[self.reg[self.sp]]
+        self.reg[self.sp] += 1
 
     def load(self):
         """Load a program into memory."""
 
         address = 0
+        program = []
 
-        # For now, we've just hardcoded a program:
-
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
+        with open(sys.argv[1], 'r') as f:
+            nums = '01'
+            for l in f.readlines():
+                if (l) and (l[0] != '#') and (l[0] in nums):
+                    line_elements = l.split('#')
+                    program.append(bin(int(line_elements[0], 2)))
 
         for instruction in program:
-            self.ram[address] = instruction
+            self.ram[address] = int(instruction, 2)
             address += 1
-
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
 
-        if op == "ADD":
+        if op == 'ADD':
             self.reg[reg_a] += self.reg[reg_b]
+        elif op == 'MUL':
+            self.reg[reg_a] *= self.reg[reg_b]
+        elif op == 'AND':
+            self.reg[reg_a] &= self.reg[reg_b]
+        elif op == 'OR':
+            self.reg[reg_a] |= self.reg[reg_b]
+        elif op == 'XOR':
+            self.reg[reg_a] ^= self.reg[reg_b]
+        elif op == 'NOT':
+            self.reg[reg_a] = ~self.reg[reg_b]
+        elif op == 'SHL':
+            self.reg[reg_a] <<= self.reg[reg_b]
+        elif op == 'SHR':
+            self.reg[reg_a] >>= self.reg[reg_b]
+        elif op == 'MOD':
+            if self.reg[reg_b] == 0:
+                print('error - could not mod with 0')
+                self.running = False
+            else:
+                self.reg[reg_a] %= self.reg[reg_b]
+        elif op == 'CMP': #00000LGE
+            if self.reg[reg_a] == self.reg[reg_b]:
+                self.fl = 0b00000001
+            elif self.reg[reg_a] > self.reg[reg_b]:
+                self.fl = 0b00000010
+            elif self.reg[reg_a] < self.reg[reg_b]:
+                self.fl = 0b00000100
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
@@ -48,7 +144,7 @@ class CPU:
 
         print(f"TRACE: %02X | %02X %02X %02X |" % (
             self.pc,
-            #self.fl,
+            self.fl,
             #self.ie,
             self.ram_read(self.pc),
             self.ram_read(self.pc + 1),
@@ -60,6 +156,111 @@ class CPU:
 
         print()
 
+    def handle_hlt(self): # HLT - stop running the program
+        self.pc += 1
+        self.running = False
+
+    def handle_ldi(self): # LDI - set the value of a register to an integer
+        self.reg[self.ram_read(self.pc + 1)] = self.ram_read(self.pc + 2)
+        # self.pc += 3
+        self.set_pc()
+
+    def handle_prn(self): # PRN - print value stored in given register
+        print(self.reg[self.ram_read(self.pc + 1)])
+        self.set_pc()
+        # self.pc += 2
+
+    def handle_push(self): # PUSH - push the value in the given register on the stack
+        # self.reg[7] -= 1
+        # self.ram[self.reg[7]] = self.reg[self.ram_read(self.pc + 1)]
+        self.stack_push(self.reg[self.ram_read(self.pc + 1)])
+        # self.pc += 2
+        self.set_pc()
+
+    def handle_pop(self): # POP - pop the value at the top of the stack into the given register
+        # self.reg[self.ram_read(self.pc + 1)] = self.ram[self.reg[7]]
+        # self.reg[7] += 1
+        self.stack_pop()
+        # self.pc += 2
+        self.set_pc()
+
+    def handle_call(self): # CALL - calls a subroutine (function) at the address stored in the register
+        # self.reg[7] -= 1
+        # self.ram[self.reg[7]] = (self.pc + 2)
+        self.stack_push(self.pc + 2)
+        # self.pc = self.reg[self.ram_read(self.pc + 1)]
+        self.set_pc(self.reg[self.ram_read(self.pc + 1)])
+
+    def handle_ret(self): # RET - return from subroutine
+        # self.pc = self.ram[self.reg[self.sp]]
+        self.set_pc(self.ram[self.reg[self.sp]])
+        self.reg[self.sp] += 1
+
+    def handle_st(self): # ST - store value in registerB in the address stored in registerA
+        self.ram[self.reg[self.ram_read(self.pc + 1)]] = self.reg[self.ram_read(self.pc + 2)]
+        # self.pc += 3
+        self.set_pc()
+
+    def handle_jeq(self): # JEQ - if `equal` flag is set (true), jump to the address stored in the given register
+        if self.fl & 1:
+            self.set_pc(self.reg[self.ram_read(self.pc + 1)])
+        else:
+            self.set_pc(self.pc + 2)
+
+    def handle_jne(self): # JNE - if `E` flag is clear (false, 0), jump to the address stored in the given register
+        if not (self.fl & 1):
+            self.set_pc(self.reg[self.ram_read(self.pc + 1)])
+        else:
+            self.set_pc(self.pc + 2)
+
+    def handle_jmp(self): # JMP - jump to the address stored in the given register
+        self.set_pc(self.reg[self.ram_read(self.pc + 1)])
+
+    # --- alu
+    def handle_add(self): # ADD - add the value in two registers and store the result in registerA
+        self.alu('ADD', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        # self.pc += 3
+        self.set_pc()
+
+    def handle_mul(self): # MUL - multiply values in two registers together and store the result in registerA
+        self.alu('MUL', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        # self.pc += 3
+        self.set_pc()
+
+    def handle_and(self): # AND - bitwise-AND the values in registerA and registerB, then store the result in registerA
+        self.alu('AND', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        self.set_pc()
+
+    def handle_or(self): # OR - perform a bitwise-OR between the values in registerA and registerB, storing the result in registerA
+        self.alu('OR', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        self.set_pc()
+
+    def handle_xor(self): # XOR - perform a bitwise-XOR between the values in registerA and registerB, storing the result in registerA
+        self.alu('XOR', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        self.set_pc()
+
+    def handle_not(self): # NOT perform a bitwise-NOT on the value in a register, storing the result in the register
+        self.alu('NOT', self.ram_read(self.pc + 1), self.ram_read(self.pc + 1))
+        self.set_pc()
+
+    def handle_shl(self): # SHL - shift the value in registerA left by the number of bits specified in registerB, filling the low bits with 0
+        self.alu('SHL', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        self.set_pc()
+
+    def handle_shr(self): # SHR - shift the value in registerA right by the number of bits specified in registerB, filling the high bits with 0
+        self.alu('SHR', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        self.set_pc()
+
+    def handle_mod(self): # MOD ivide the value in the first register by the value in the second, storing the _remainder_ of the result in registerA
+        self.alu('MOD', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        self.set_pc()
+
+    def handle_cmp(self): # CMP - compare the values in two registers
+        self.alu('CMP', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        self.set_pc()
+
     def run(self):
         """Run the CPU."""
-        pass
+        while self.running:
+            ir = hex(self.ram[self.pc]) # ir - [_Instruction Register_]
+            self.branchtable[ir]()
