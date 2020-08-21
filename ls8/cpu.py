@@ -6,14 +6,16 @@ instruction_codes = {
     'hlt': '0x1',
     'ldi': '0x82',
     'prn': '0x47',
-    'add': '0xa0',
-    'mul': '0xa2',
     'push': '0x45',
     'pop': '0x46',
     'call': '0x50',
     'ret': '0x11',
     'st': '0x84',
-    'and': '0xa8'
+    # --- alu
+    'add': '0xa0',
+    'mul': '0xa2',
+    'and': '0xa8',
+    'cmp': '0xa7'
 }
 
 class CPU:
@@ -22,6 +24,7 @@ class CPU:
     def __init__(self):
         """Construct a new CPU."""
         self.pc = 0
+        self.fl = 0
         self.sp = 7
         self.reg = [0xf4 if (i == self.sp) else 0 for i in range(0, 8)]
         self.ram = [0] * 256
@@ -39,6 +42,7 @@ class CPU:
         self.branchtable[instruction_codes['add']] = self.handle_add
         self.branchtable[instruction_codes['mul']] = self.handle_mul
         self.branchtable[instruction_codes['and']] = self.handle_and
+        self.branchtable[instruction_codes['cmp']] = self.handle_cmp
 
     def ram_read(self, mar): # mar - [_Memory Address Register_]
         return self.ram[mar]
@@ -91,6 +95,14 @@ class CPU:
             self.reg[reg_a] *= self.reg[reg_b]
         elif op == 'AND':
             self.reg[reg_a] &= self.reg[reg_b]
+        elif op == 'CMP': #00000LGE
+            if self.reg[reg_a] == self.reg[reg_b]:
+                self.fl = 0b00000001
+            elif self.reg[reg_a] > self.reg[reg_b]:
+                self.fl = 0b00000010
+            elif self.reg[reg_a] < self.reg[reg_b]:
+                self.fl = 0b00000100
+
         #elif op == "SUB": etc
         else:
             raise Exception("Unsupported ALU operation")
@@ -103,7 +115,7 @@ class CPU:
 
         print(f"TRACE: %02X | %02X %02X %02X |" % (
             self.pc,
-            #self.fl,
+            self.fl,
             #self.ie,
             self.ram_read(self.pc),
             self.ram_read(self.pc + 1),
@@ -161,7 +173,7 @@ class CPU:
         self.set_pc()
 
     # --- alu
-    def handle_add(self):
+    def handle_add(self): # ADD - add the value in two registers and store the result in registerA
         self.alu('ADD', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
         # self.pc += 3
         self.set_pc()
@@ -171,10 +183,14 @@ class CPU:
         # self.pc += 3
         self.set_pc()
 
-    def handle_and(self):
+    def handle_and(self): # AND - bitwise-AND the values in registerA and registerB, then store the result in registerA
         # print(bin(self.ram_read(self.pc + 1)))
         # print(bin(self.ram_read(self.pc + 2)))
         self.alu('AND', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
+        self.set_pc()
+
+    def handle_cmp(self): # CMP - compare the values in two registers
+        self.alu('CMP', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
         self.set_pc()
 
     def run(self):
@@ -184,6 +200,7 @@ class CPU:
             # print(self.pc)
             ir = hex(self.ram[self.pc]) # ir - [_Instruction Register_]
             self.branchtable[ir]()
+        # print(self.fl)
 
 # x = CPU()
 # x.load() # examples/print8.ls8
