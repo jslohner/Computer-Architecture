@@ -11,6 +11,9 @@ instruction_codes = {
     'call': '0x50',
     'ret': '0x11',
     'st': '0x84',
+    'jeq': '0x55',
+    'jne': '0x56',
+    'jmp': '0x54',
     # --- alu
     'add': '0xa0',
     'mul': '0xa2',
@@ -38,6 +41,9 @@ class CPU:
         self.branchtable[instruction_codes['call']] = self.handle_call
         self.branchtable[instruction_codes['ret']] = self.handle_ret
         self.branchtable[instruction_codes['st']] = self.handle_st
+        self.branchtable[instruction_codes['jeq']] = self.handle_jeq
+        self.branchtable[instruction_codes['jne']] = self.handle_jne
+        self.branchtable[instruction_codes['jmp']] = self.handle_jmp
         # --- alu
         self.branchtable[instruction_codes['add']] = self.handle_add
         self.branchtable[instruction_codes['mul']] = self.handle_mul
@@ -172,6 +178,18 @@ class CPU:
         # self.pc += 3
         self.set_pc()
 
+    def handle_jeq(self): # JEQ - if `equal` flag is set (true), jump to the address stored in the given register
+        if self.fl & 1:
+            self.set_pc(self.reg[self.ram_read(self.pc + 1)])
+        else:
+            self.set_pc()
+
+    def handle_jne(self): # JNE - if `E` flag is clear (false, 0), jump to the address stored in the given register
+        pass
+
+    def handle_jmp(self): # JMP - jump to the address stored in the given register
+        pass
+
     # --- alu
     def handle_add(self): # ADD - add the value in two registers and store the result in registerA
         self.alu('ADD', self.ram_read(self.pc + 1), self.ram_read(self.pc + 2))
@@ -204,3 +222,7 @@ class CPU:
 
 # x = CPU()
 # x.load() # examples/print8.ls8
+
+# JEQ
+# JNE
+# JMP
