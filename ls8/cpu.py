@@ -183,9 +183,13 @@ class CPU:
             self.set_pc(self.reg[self.ram_read(self.pc + 1)])
         else:
             self.set_pc()
+#00000LGE
 
     def handle_jne(self): # JNE - if `E` flag is clear (false, 0), jump to the address stored in the given register
-        pass
+        if not (self.fl & 1):
+            self.set_pc(self.reg[self.ram_read(self.pc + 1)])
+        else:
+            self.set_pc()
 
     def handle_jmp(self): # JMP - jump to the address stored in the given register
         pass
